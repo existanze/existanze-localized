@@ -1,0 +1,33 @@
+{
+  "name": "existanze-localized",
+  "version": "0.0.1",
+  "description": "A module which include localized extensions to the A2 CMS",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/existanze/existanze-localized.git"
+  },
+  "keywords": [
+    "apostrophe",
+    "cms",
+    "content management",
+    "content management system",
+    "punkave",
+    "existanze",
+    "localized"
+  ],
+  "author": {
+    "name": "P'unk Avenue LLC"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "async": "^1.0.0"
+  },
+  "homepage": "https://github.com/existanze/existanze-localized",
+  "maintainers": [
+    {
+      "name": "fotisp",
+      "email": "fotis@existanze.com"
+    }
+  ],
+  "directories": {}
+}
