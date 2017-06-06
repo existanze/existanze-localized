@@ -2,18 +2,18 @@ var _ = require('lodash');
 var async = require('async');
 var util = require("util");
 var localized = require("./lib/localized");
-
+var urls = require('url');
 
 module.exports = {
   improve: 'apostrophe-docs',
   alias:'existanzeDocs',
   afterConstruct:function(self){
+
     self.apos.app.use(self.localizedHelper);
     self.apos.app.use(self.localizedGet);
 
   },
   construct:function(self,options){
-
 
 
     var l = localized(self);
@@ -22,7 +22,10 @@ module.exports = {
     self.locales = options.locales;
     self.localized = [ 'title' ].concat(options.localized || []);
 
-    self.neverTypes =options.neverTypes || ['apostrophe-image'];
+    self.neverTypes =
+      _.concat(['localizedDocument'],
+        options.neverTypes || []
+      );
 
     self.disableLoad = options.disableLoad || false;
     self.disableSave = options.disableSave || false;
@@ -39,7 +42,6 @@ module.exports = {
           var locales = [];
           var availableLanguages = _.keys(locales);
 
-          var urls = require('url');
           var parsed = urls.parse(req.url, true);
           delete parsed.search;
           delete parsed.query.apos_refresh;
@@ -117,21 +119,25 @@ module.exports = {
 
       }
 
-      var matches = req.url.match(/^\/(\w+)(\/.*|\?.*|)$/);
+      var matches = req.url.match(/^\/(\w\w)(\/.*|\?.*|)$/);
       if (!matches) {
         //do not keep the session locale here
         setLocale(req,self.defaultLocale);
         return next();
       }
 
-      if (!_.has(options.locales, matches[1])) {
+      var locale = matches[1];
+      var url = matches[2];
+
+      if (!_.has(options.locales, locale)) {
         setLocale(req,self.defaultLocale);
         return next();
       }
 
-      setLocale(req,matches[1]);
 
-      req.url = matches[2];
+      setLocale(req,locale);
+
+      req.url = url;
 
       if (!req.url.length) {
         req.url = "/"
@@ -142,6 +148,10 @@ module.exports = {
     };
 
     self.docBeforeSave = function(req, doc, options,callback) {
+
+      if(doc.type === "localizedDocument"){
+        return callback();
+      }
 
       /**
        * For future reference.
@@ -165,7 +175,7 @@ module.exports = {
         return setImmediate(callback);
       }
 
-      l.syncLocale(doc,locale,callback);
+      l.syncLocale(req,doc,locale,callback);
 
     };
 
@@ -202,8 +212,6 @@ module.exports = {
 
 
 
-    // merge new methods with all apostrophe-cursors
-    self.apos.define('apostrophe-cursor', require('./lib/cursor.js')(self,l));
 
     self.apos.tasks.add("localized","migrate","This is a task that migration from doc.localized to proper collections in the database",function(apos,arg,callback){
 
@@ -258,6 +266,41 @@ module.exports = {
       ,function () { return stop }
       ,callback);
     });
+    self.apos.tasks.add("localized","moveToPiece","This is a task migrates from the aposLocalizedDoc collection to instances of apostrophe-pieces",function(apos,arg,callback){
+
+
+
+      var req = apos.tasks.getReq();
+
+      var cursor = apos.db.collection("aposLocalizedDocs").find().sort({"_id":1});
+
+      var stop = false;
+
+      async.doUntil(function(callback){
+
+        cursor.nextObject(function (err, doc) {
+
+          if(err){
+            console.log("Error ",err);
+            return callback();
+
+          }
+
+          if(!doc){
+            stop = true;
+            return callback();
+          }
+
+
+          console.log("Migrating ",doc._id,"=>",doc.docId);
+
+          return l.migrateToDocument(req,doc,callback);
+
+        });
+      }
+      ,function () { return stop }
+      ,callback);
+    });
     self.apos.tasks.add("localized","correctClone","Remove the _ properties from the documents ",function(apos,arg,callback){
 
 
@@ -284,6 +327,8 @@ module.exports = {
       ,callback);
     });
 
+    // merge new methods with all apostrophe-cursors
+    self.apos.define('apostrophe-cursor', require('./lib/cursor.js')(self,l));
 
   }
 

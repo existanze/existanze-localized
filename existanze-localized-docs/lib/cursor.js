@@ -1,3 +1,5 @@
+var _ = require('lodash');
+
 module.exports = function (module,localized) {
 
   return {
@@ -19,7 +21,7 @@ module.exports = function (module,localized) {
               locale = req.locale;
             }
 
-            return localized.loadLocale(results,locale,callback);
+            return localized.loadLocale(req,results,locale,callback);
 
           }
         }
