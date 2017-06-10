@@ -147,6 +147,7 @@ module.exports = {
 
     };
 
+
     self.docBeforeSave = function(req, doc, options,callback) {
 
       if(doc.type === "localizedDocument"){

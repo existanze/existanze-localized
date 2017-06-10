@@ -79,6 +79,7 @@ module.exports=function(module){
             "locale":locale,
             "docId":doc._id
           }).limit(1)
+            .areas(false)
             .toObject(function(err,doc){
               if(err){
                 return callback(err);
@@ -252,22 +253,6 @@ module.exports=function(module){
     },
     loadLocale:function(req,results,locale,callback){
 
-      if(module.disableLoad){
-        return callback();
-      }
-
-
-
-
-      // _.each(results,function(doc,callback){
-      //
-      //   debugDocument(doc,"Products",function(d){
-      //
-      //     return d.slug=="/products";
-      //   });
-      //
-      // });
-
       async.each(results,function(doc,callback){
 
         if(isNeverType(doc)){
@@ -283,8 +268,6 @@ module.exports=function(module){
           }
 
           _.each(doc, function (value, key) {
-
-
 
             if (!isArea(value)) {
               return;
@@ -305,7 +288,6 @@ module.exports=function(module){
 
 
             if (!_.has(localized.docs[locale].doc, key)) {
-              console.log("\treturning because ",locale," is not available for ",key);
               return;
             }
 
@@ -364,11 +346,17 @@ module.exports=function(module){
 
 
 
+
+
           return callback();
 
         });
 
-      },callback);
+      },function(err){
+
+        callback(err,results);
+
+      });
 
     },
     migrateLocale:function(doc,callback){
@@ -441,8 +429,11 @@ module.exports=function(module){
 
       l.locale= doc.locale;
       l.docId = doc.docId;
+
       l.slug = "localized-"+doc.docId;
 
+      delete doc._id;
+      delete doc.docId;
       delete doc.type;
       delete doc.locale;
 
